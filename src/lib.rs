@@ -7,8 +7,6 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::Clamped;
 use web_sys::{CanvasRenderingContext2d, ImageData};
 
-const SAMPLE_RATE: u32 = 4000;
-
 #[wasm_bindgen]
 pub fn height() -> u32 {
     ludus::NES_HEIGHT as u32
@@ -54,20 +52,38 @@ impl ludus::VideoDevice for PixelBuffer {
     }
 }
 
+struct BasicAudioDevice(Vec<f32>);
+
+impl BasicAudioDevice {
+    fn new(micros: u32, sample_rate: u32) -> Self {
+        BasicAudioDevice(Vec::with_capacity((micros * sample_rate / 1_000_000) as usize))
+    }
+
+    fn flush(self) -> Vec<f32> {
+        self.0
+    }
+}
+
+impl ludus::AudioDevice for BasicAudioDevice {
+    fn push_sample(&mut self, sample: f32) {
+        self.0.push(sample)
+    }
+}
+
 #[wasm_bindgen]
 struct Emulator {
     pixels: PixelBuffer,
-    audio: [f32; 3],
+    sample_rate: u32,
     console: Option<ludus::Console>,
 }
 
 #[wasm_bindgen]
 impl Emulator {
     #[wasm_bindgen(constructor)]
-    pub fn new() -> Self {
+    pub fn new(sample_rate: u32) -> Self {
         Emulator {
             pixels: PixelBuffer::new(),
-            audio: [0.0, 0.1, 0.2],
+            sample_rate: sample_rate,
             console: None,
         }
     }
@@ -91,14 +107,16 @@ impl Emulator {
     #[wasm_bindgen]
     pub fn swap_cart(&mut self, rom: &[u8]) {
         let cart = ludus::Cart::from_bytes(rom).unwrap();
-        self.console = Some(ludus::Console::new(cart, SAMPLE_RATE));
+        self.console = Some(ludus::Console::new(cart, self.sample_rate));
     }
 
     #[wasm_bindgen]
-    pub fn step(&mut self, ctx: &CanvasRenderingContext2d, micros: u32) -> Result<(), JsValue> {
+    pub fn step(&mut self, ctx: &CanvasRenderingContext2d, micros: u32) -> Result<Vec<f32>, JsValue> {
+        let mut audio = BasicAudioDevice::new(micros, self.sample_rate);
         if let Some(console) = &mut self.console {
-            console.step_micros(&mut NullAudioDevice, &mut self.pixels, micros);
+            console.step_micros(&mut audio, &mut self.pixels, micros);
         }
-        self.pixels.render_to(ctx)
+        self.pixels.render_to(ctx)?;
+        Ok(audio.flush())
     }
 }

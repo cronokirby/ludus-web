@@ -1,6 +1,46 @@
 import { Emulator } from "../Cargo.toml";
 
-const emu = new Emulator();
+/**
+ * The number of seconds in our samples
+ */
+const MIN_SAMPLE_DURATION = 1 / 120;
+const audioCtx = new AudioContext();
+const SAMPLE_RATE = audioCtx.sampleRate;
+
+
+const minSampleSize = SAMPLE_RATE * MIN_SAMPLE_DURATION;
+
+let samples = new Float32Array(minSampleSize);
+
+let flushing = false;
+
+function pushSamples(newSamples: Float32Array) {
+  const out = new Float32Array(samples.length + newSamples.length);
+  out.set(samples);
+  out.set(newSamples, samples.length);
+  samples = out;
+  if (!flushing) {
+      flushSamples()
+  }
+}
+
+function flushSamples() {
+  if (samples.length < minSampleSize) {
+    flushing = false;
+    return;
+  }
+  flushing = true;
+  const buf = audioCtx.createBuffer(1, samples.length, SAMPLE_RATE);
+  buf.copyToChannel(samples, 0);
+  samples = new Float32Array(0);
+  const node = audioCtx.createBufferSource();
+  node.buffer = buf;
+  node.onended = flushSamples;
+  node.connect(audioCtx.destination);
+  node.start(0);
+}
+
+const emu = new Emulator(SAMPLE_RATE);
 
 const romSelector = document.getElementById("rom-selector") as HTMLInputElement;
 romSelector.addEventListener(
@@ -51,12 +91,14 @@ window.addEventListener("keyup", (ev) => {
   emu.update_buttons(buttons);
 });
 
+
 let old = 0.0;
 
 function loop(timestamp: number) {
   const diff = 1000 * (timestamp - old);
   old = timestamp;
-  emu.step(ctx, diff);
+  const buffer = emu.step(ctx, diff);
+  pushSamples(buffer);
 
   window.requestAnimationFrame(loop);
 }
