@@ -1,10 +1,9 @@
-use std::ptr;
-
 use ludus;
 use ludus::NES_HEIGHT;
 use ludus::NES_WIDTH;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::Clamped;
+use web_sys::AudioContext;
 use web_sys::{CanvasRenderingContext2d, ImageData};
 
 #[wasm_bindgen]
@@ -52,38 +51,66 @@ impl ludus::VideoDevice for PixelBuffer {
     }
 }
 
-struct BasicAudioDevice(Vec<f32>);
+const SAMPLE_CHUNK_SIZE: usize = 2048;
 
-impl BasicAudioDevice {
-    fn new(micros: u32, sample_rate: u32) -> Self {
-        BasicAudioDevice(Vec::with_capacity((micros * sample_rate / 1_000_000) as usize))
+struct Audio {
+    ctx: AudioContext,
+    samples: Vec<f32>,
+    sample_rate: u32,
+    play_timestamp: f64
+}
+
+impl Audio {
+    fn new(sample_rate: u32, ctx: AudioContext) -> Self {
+        Audio {
+            ctx,
+            samples: Vec::with_capacity(SAMPLE_CHUNK_SIZE),
+            sample_rate,
+            play_timestamp: 0.0
+        }
     }
 
-    fn flush(self) -> Vec<f32> {
-        self.0
+    #[inline]
+    fn push_sample_js(&mut self, sample: f32) -> Result<(), JsValue> {
+        self.samples.push(sample);
+        if self.samples.len() < SAMPLE_CHUNK_SIZE {
+            return Ok(())
+        }
+        let sample_count = self.samples.len();
+        let audio_buffer = self.ctx.create_buffer(1, sample_count as u32, self.sample_rate as f32)?;
+        audio_buffer.copy_to_channel(&self.samples, 0)?;
+        let node = self.ctx.create_buffer_source()?;
+        node.set_buffer(Some(&audio_buffer));
+        node.connect_with_audio_node(&self.ctx.destination())?;
+        let latency = 0.032;
+        let play_timestamp = f64::max(self.ctx.current_time() + latency, self.play_timestamp);
+        node.start_with_when(play_timestamp)?;
+        self.play_timestamp = play_timestamp + (sample_count as f64) / (self.sample_rate as f64);
+        self.samples.clear();
+        Ok(())
     }
 }
 
-impl ludus::AudioDevice for BasicAudioDevice {
+impl ludus::AudioDevice for Audio {
     fn push_sample(&mut self, sample: f32) {
-        self.0.push(sample)
+        self.push_sample_js(sample).unwrap()
     }
 }
 
 #[wasm_bindgen]
 struct Emulator {
     pixels: PixelBuffer,
-    sample_rate: u32,
+    audio: Audio,
     console: Option<ludus::Console>,
 }
 
 #[wasm_bindgen]
 impl Emulator {
     #[wasm_bindgen(constructor)]
-    pub fn new(sample_rate: u32) -> Self {
+    pub fn new(sample_rate: u32, audio: AudioContext) -> Self {
         Emulator {
             pixels: PixelBuffer::new(),
-            sample_rate: sample_rate,
+            audio: Audio::new(sample_rate, audio),
             console: None,
         }
     }
@@ -107,16 +134,19 @@ impl Emulator {
     #[wasm_bindgen]
     pub fn swap_cart(&mut self, rom: &[u8]) {
         let cart = ludus::Cart::from_bytes(rom).unwrap();
-        self.console = Some(ludus::Console::new(cart, self.sample_rate));
+        self.console = Some(ludus::Console::new(cart, self.audio.sample_rate));
     }
 
     #[wasm_bindgen]
-    pub fn step(&mut self, ctx: &CanvasRenderingContext2d, micros: u32) -> Result<Vec<f32>, JsValue> {
-        let mut audio = BasicAudioDevice::new(micros, self.sample_rate);
+    pub fn step(
+        &mut self,
+        ctx: &CanvasRenderingContext2d,
+        micros: u32,
+    ) -> Result<Vec<f32>, JsValue> {
         if let Some(console) = &mut self.console {
-            console.step_micros(&mut audio, &mut self.pixels, micros);
+            console.step_micros(&mut self.audio, &mut self.pixels, micros);
         }
         self.pixels.render_to(ctx)?;
-        Ok(audio.flush())
+        Ok(Vec::new())
     }
 }

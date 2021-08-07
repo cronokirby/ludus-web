@@ -14,6 +14,11 @@ wasm-bindgen = "0.2.75"
 [dependencies.web-sys]
 version = "0.3.52"
 features = [
+  'AudioBuffer',
+  'AudioBufferSourceNode',
+  'AudioDestinationNode',
+  'AudioNode',
+  'AudioContext',
   'ImageData',
   'CanvasRenderingContext2d',
 ]
