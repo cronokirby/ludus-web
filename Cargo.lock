@@ -39,9 +39,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ludus"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76f7ec3028b5e8edf86928292bf98e7f1556671a228614be6d7dc1f73bf3f33c"
+
+[[package]]
 name = "ludus_web"
 version = "0.1.0"
 dependencies = [
+ "ludus",
  "wasm-bindgen",
  "web-sys",
 ]

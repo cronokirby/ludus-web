@@ -8,6 +8,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
+ludus = "0.2.2"
 wasm-bindgen = "0.2.75"
 
 [dependencies.web-sys]

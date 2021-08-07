@@ -4,7 +4,7 @@
   "description": "An NES emulator for the web",
   "main": "index.js",
   "scripts": {
-    "dev": "WASM_PACK_PROFILE=dev parcel src/index.html",
+    "dev": "WASM_PACK_PROFILE=release parcel src/index.html",
     "build": "WASM_PACK_PROFILE=release parcel build src/index.html"
   },
   "author": "Lúcás C. Meier",
