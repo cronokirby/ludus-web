@@ -22,16 +22,22 @@ impl ludus::AudioDevice for NullAudioDevice {
     fn push_sample(&mut self, _sample: f32) {}
 }
 
-struct PixelBuffer(Vec<u8>);
+struct PixelBuffer {
+    frame_count: u32,
+    buf: Vec<u8>,
+}
 
 impl PixelBuffer {
     fn new() -> Self {
-        PixelBuffer(vec![0; 4 * NES_HEIGHT * NES_WIDTH])
+        PixelBuffer {
+            frame_count: 0,
+            buf: vec![0; 4 * NES_HEIGHT * NES_WIDTH],
+        }
     }
 
     fn render_to(&mut self, ctx: &CanvasRenderingContext2d) -> Result<(), JsValue> {
         let data = ImageData::new_with_u8_clamped_array_and_sh(
-            Clamped(&mut self.0),
+            Clamped(&mut self.buf),
             NES_WIDTH as u32,
             NES_HEIGHT as u32,
         )?;
@@ -41,12 +47,13 @@ impl PixelBuffer {
 
 impl ludus::VideoDevice for PixelBuffer {
     fn blit_pixels(&mut self, pixels: &ludus::PixelBuffer) {
+        self.frame_count += 1;
         for (i, pixel) in pixels.as_ref().iter().enumerate() {
             let base = 4 * i;
-            self.0[base + 3] = (pixel >> 24) as u8;
-            self.0[base] = (pixel >> 16) as u8;
-            self.0[base + 1] = (pixel >> 8) as u8;
-            self.0[base + 2] = *pixel as u8;
+            self.buf[base + 3] = (pixel >> 24) as u8;
+            self.buf[base] = (pixel >> 16) as u8;
+            self.buf[base + 1] = (pixel >> 8) as u8;
+            self.buf[base + 2] = *pixel as u8;
         }
     }
 }
@@ -57,7 +64,8 @@ struct Audio {
     ctx: AudioContext,
     samples: Vec<f32>,
     sample_rate: u32,
-    play_timestamp: f64
+    play_timestamp: f64,
+    underrun: u32
 }
 
 impl Audio {
@@ -66,27 +74,45 @@ impl Audio {
             ctx,
             samples: Vec::with_capacity(SAMPLE_CHUNK_SIZE),
             sample_rate,
-            play_timestamp: 0.0
+            play_timestamp: 0.0,
+            underrun: 0
         }
     }
 
     #[inline]
+    fn has_chunk(&self) -> bool {
+        self.samples.len() >= SAMPLE_CHUNK_SIZE
+    }
+
+    // Kudos to https://github.com/koute/pinky/blob/master/pinky-web/src/main.rs for
+    // the idea behind this buffer management.
+    #[inline]
     fn push_sample_js(&mut self, sample: f32) -> Result<(), JsValue> {
         self.samples.push(sample);
-        if self.samples.len() < SAMPLE_CHUNK_SIZE {
-            return Ok(())
+        if !self.has_chunk() {
+            return Ok(());
         }
         let sample_count = self.samples.len();
-        let audio_buffer = self.ctx.create_buffer(1, sample_count as u32, self.sample_rate as f32)?;
+        let audio_buffer =
+            self.ctx
+                .create_buffer(1, sample_count as u32, self.sample_rate as f32)?;
         audio_buffer.copy_to_channel(&self.samples, 0)?;
         let node = self.ctx.create_buffer_source()?;
         node.set_buffer(Some(&audio_buffer));
         node.connect_with_audio_node(&self.ctx.destination())?;
         let latency = 0.032;
+        let buffered = self.play_timestamp - (self.ctx.current_time() + latency);
         let play_timestamp = f64::max(self.ctx.current_time() + latency, self.play_timestamp);
         node.start_with_when(play_timestamp)?;
         self.play_timestamp = play_timestamp + (sample_count as f64) / (self.sample_rate as f64);
         self.samples.clear();
+        if buffered < 0.0 {
+            self.underrun = u32::max(self.underrun, 3)
+        } else if buffered < 0.01 {
+            self.underrun = u32::max(self.underrun, 2)
+        } else if buffered < 0.02 {
+            self.underrun = u32::max(self.underrun, 1)
+        }
         Ok(())
     }
 }
@@ -137,16 +163,29 @@ impl Emulator {
         self.console = Some(ludus::Console::new(cart, self.audio.sample_rate));
     }
 
+    fn step_until_audio_chunk_or_frame(&mut self) {
+        if let Some(console) = &mut self.console {
+            let start_frame = self.pixels.frame_count;
+            while (start_frame >= self.pixels.frame_count) && !self.audio.has_chunk() {
+                console.step(&mut self.audio, &mut self.pixels);
+            }
+        }
+    }
+
     #[wasm_bindgen]
     pub fn step(
         &mut self,
         ctx: &CanvasRenderingContext2d,
         micros: u32,
-    ) -> Result<Vec<f32>, JsValue> {
+    ) -> Result<(), JsValue> {
         if let Some(console) = &mut self.console {
             console.step_micros(&mut self.audio, &mut self.pixels, micros);
         }
         self.pixels.render_to(ctx)?;
-        Ok(Vec::new())
+        for _ in 0..self.audio.underrun {
+            self.step_until_audio_chunk_or_frame();
+        }
+        self.audio.underrun = 0;
+        Ok(())
     }
 }
