@@ -1,15 +1,17 @@
 {
-  "name": "ludus-web",
+  "name": "ludus_web",
   "version": "0.1.0",
   "description": "An NES emulator for the web",
   "main": "index.js",
   "scripts": {
-    "dev": "parcel src/index.html",
-    "build": "parcel build src/index.html"
+    "dev": "WASM_PACK_PROFILE=dev parcel src/index.html",
+    "build": "WASM_PACK_PROFILE=release parcel build src/index.html"
   },
   "author": "Lúcás C. Meier",
   "license": "MIT",
   "devDependencies": {
-    "parcel-bundler": "^1.12.5"
+    "parcel-bundler": "^1.12.5",
+    "parcel-plugin-wasm.rs": "^1.3.0",
+    "typescript": "^4.3.5"
   }
 }
