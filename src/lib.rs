@@ -100,7 +100,7 @@ impl Audio {
         let node = self.ctx.create_buffer_source()?;
         node.set_buffer(Some(&audio_buffer));
         node.connect_with_audio_node(&self.ctx.destination())?;
-        let latency = 0.032;
+        let latency = 2.0 / 60.0;
         let buffered = self.play_timestamp - (self.ctx.current_time() + latency);
         let play_timestamp = f64::max(self.ctx.current_time() + latency, self.play_timestamp);
         node.start_with_when(play_timestamp)?;
