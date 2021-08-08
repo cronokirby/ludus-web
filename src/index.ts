@@ -21,6 +21,26 @@ romSelector.addEventListener(
 document.getElementById("rom-selector-button").addEventListener("click", () => {
   romSelector.click();
 });
+document.body.ondragover = document.body.ondragenter = (ev) => {
+  ev.preventDefault();
+};
+document.body.addEventListener("drop", (ev) => {
+  ev.preventDefault();
+  let file = null as File | null;
+  if (ev.dataTransfer.items) {
+    // Use DataTransferItemList interface to access the file(s)
+    for (var i = 0; i < ev.dataTransfer.items.length; i++) {
+      // If dropped items aren't files, reject them
+      if (ev.dataTransfer.items[i].kind === "file") {
+        file = ev.dataTransfer.items[i].getAsFile();
+        break;
+      }
+    }
+  } else {
+    file = ev.dataTransfer.files[0];
+  }
+  file.arrayBuffer().then((rom) => emu.swap_cart(new Uint8Array(rom)));
+});
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d");
