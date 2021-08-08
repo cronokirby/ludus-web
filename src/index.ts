@@ -18,9 +18,16 @@ romSelector.addEventListener(
   },
   false
 );
+document.getElementById("rom-selector-button").addEventListener("click", () => {
+  romSelector.click();
+});
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const ctx = canvas.getContext("2d");
+
+ctx.webkitImageSmoothingEnabled = false;
+ctx.mozImageSmoothingEnabled = false;
+ctx.imageSmoothingEnabled = false;
 
 enum Buttons {
   A = 1,
@@ -53,7 +60,6 @@ window.addEventListener("keyup", (ev) => {
   buttons &= ~(buttonmap[ev.key] ?? 0);
   emu.update_buttons(buttons);
 });
-
 
 let old = 0.0;
 

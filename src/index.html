@@ -1,10 +1,19 @@
 <html>
   <head>
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type" />
+    <link rel="stylesheet" href="./index.css" />
   </head>
-  <body>
-    <input type="file" id="rom-selector">
-    <canvas id="canvas" width="600" height="600"></canvas>
+  <body
+    class="box"
+  >
+    <div></div>
+    <canvas id="canvas" width="256" height="240" style="height: 100%"></canvas>
+    <div>
+      <button id="rom-selector-button" class="icon-button">
+        <img src="./icons/upload.svg" width="64px"></img>
+      </button>
+      <input type="file" id="rom-selector" hidden/>
+    </div>
     <script src="./index.ts"></script>
   </body>
 </html>
