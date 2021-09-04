@@ -4,13 +4,206 @@
     <link rel="stylesheet" href="./index.css" />
   </head>
   <body class="h-full overflow-hidden bg-black flex flex-wrap justify-between">
-    <div id="settings-menu-background" class="invisible opacity-0 transition duration-500 absolute text-white bg-gray-800 bg-opacity-60 inset-0 flex place-content-center">
-      <div id="settings-menu" class="bg-red-400 w-64 h-64 my-auto"></div>
+    <div
+      id="settings-menu-background"
+      class="
+        invisible
+        opacity-0
+        transition
+        duration-500
+        absolute
+        text-white
+        bg-gray-800 bg-opacity-60
+        inset-0
+        flex
+        place-content-center
+      "
+    >
+      <div id="settings-menu" class="my-auto w-64">
+        <div class="rounded-md shadow-lg bg-gray-700 p-4 space-y-4">
+          <h2 class="text-xl uppercase font-bold">Game</h2>
+          <div class="flex items-center space-x-4">
+            <button
+              class="
+                rounded-md
+                px-2
+                py-1
+                font-bold
+                shadow-md
+                bg-blue-500
+                hover:bg-blue-400
+              "
+            >
+              Select ROM
+            </button>
+            <span></span>
+          </div>
+          <h2 class="text-xl uppercase font-bold">Input</h2>
+          <div class="space-y-3">
+            <div class="flex items-center space-x-4">
+              <button
+                class="
+                  rounded-md
+                  w-8
+                  py-1
+                  font-bold
+                  shadow-md
+                  bg-blue-500
+                  hover:bg-blue-400
+                "
+              >
+                ↑
+              </button>
+              <span
+                class="flex-grow bg-gray-800 rounded-md shadow-inner px-2 py-1"
+                >W</span
+              >
+            </div>
+            <div class="flex items-center space-x-4">
+              <button
+                class="
+                  rounded-md
+                  w-8
+                  py-1
+                  font-bold
+                  shadow-md
+                  bg-blue-500
+                  hover:bg-blue-400
+                "
+              >
+                ←
+              </button>
+              <span
+                class="flex-grow bg-gray-800 rounded-md shadow-inner px-2 py-1"
+                >A</span
+              >
+            </div>
+            <div class="flex items-center space-x-4">
+              <button
+                class="
+                  rounded-md
+                  w-8
+                  py-1
+                  font-bold
+                  shadow-md
+                  bg-blue-500
+                  hover:bg-blue-400
+                "
+              >
+                ↓
+              </button>
+              <span
+                class="flex-grow bg-gray-800 rounded-md shadow-inner px-2 py-1"
+                >S</span
+              >
+            </div>
+
+            <div class="flex items-center space-x-4">
+              <button
+                class="
+                  rounded-md
+                  w-8
+                  py-1
+                  font-bold
+                  shadow-md
+                  bg-blue-500
+                  hover:bg-blue-400
+                "
+              >
+                →
+              </button>
+              <span
+                class="flex-grow bg-gray-800 rounded-md shadow-inner px-2 py-1"
+                >D</span
+              >
+            </div>
+            <div class="flex items-center space-x-4">
+              <button
+                class="
+                  rounded-md
+                  w-8
+                  py-1
+                  font-bold
+                  shadow-md
+                  bg-blue-500
+                  hover:bg-blue-400
+                "
+              >
+                A
+              </button>
+              <span
+                class="flex-grow bg-gray-800 rounded-md shadow-inner px-2 py-1"
+                >J</span
+              >
+            </div>
+            <div class="flex items-center space-x-4">
+              <button
+                class="
+                  rounded-md
+                  w-8
+                  py-1
+                  font-bold
+                  shadow-md
+                  bg-blue-500
+                  hover:bg-blue-400
+                "
+              >
+                B
+              </button>
+              <span
+                class="flex-grow bg-gray-800 rounded-md shadow-inner px-2 py-1"
+                >K</span
+              >
+            </div>
+            <div class="flex items-center space-x-4">
+              <button
+                class="
+                  rounded-md
+                  w-8
+                  py-1
+                  font-bold
+                  shadow-md
+                  bg-blue-500
+                  hover:bg-blue-400
+                "
+              >
+                Sl
+              </button>
+              <span
+                class="flex-grow bg-gray-800 rounded-md shadow-inner px-2 py-1"
+                >G</span
+              >
+            </div>
+            <div class="flex items-center space-x-4">
+              <button
+                class="
+                  w-8
+                  rounded-md
+                  py-1
+                  font-bold
+                  shadow-md
+                  bg-blue-500
+                  hover:bg-blue-400
+                "
+              >
+                St
+              </button>
+              <span
+                class="flex-grow bg-gray-800 rounded-md shadow-inner px-2 py-1"
+                >H</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div></div>
     <canvas id="canvas" width="256" height="240" class="h-full"></canvas>
     <div class="text-white flex flex-col w-14 m-4 space-y-4">
-      <button id="rom-selector-button" class="transition duration-200 hover:text-blue-200">
+      <button
+        id="rom-selector-button"
+        class="transition duration-200 hover:text-blue-200"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 24 24"
@@ -20,7 +213,10 @@
           <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
         </svg>
       </button>
-      <button id="settings-button" class="transition duration-200 hover:text-blue-200">
+      <button
+        id="settings-button"
+        class="transition duration-200 hover:text-blue-200"
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           enable-background="new 0 0 24 24"
