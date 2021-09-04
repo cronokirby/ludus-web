@@ -5,6 +5,28 @@ const SAMPLE_RATE = 44100;
 
 const emu = new Emulator(SAMPLE_RATE, audioCtx);
 
+let settingsMenuOpen = false;
+
+function openSettingsMenu() {
+  if (settingsMenuOpen) {
+    return;
+  }
+  settingsMenuOpen = true;
+  const menu = document.getElementById("settings-menu-background");
+  menu.classList.remove("invisible", "opacity-0");
+  menu.classList.add("opacity-100");
+}
+
+function closeSettingsMenu() {
+  if (!settingsMenuOpen) {
+    return;
+  }
+  settingsMenuOpen = false;
+  const menu = document.getElementById("settings-menu-background");
+  menu.classList.remove("opacity-100");
+  menu.classList.add("invisible", "opacity-0");
+}
+
 const romSelector = document.getElementById("rom-selector") as HTMLInputElement;
 romSelector.addEventListener(
   "change",
@@ -20,6 +42,18 @@ romSelector.addEventListener(
 );
 document.getElementById("rom-selector-button").addEventListener("click", () => {
   romSelector.click();
+});
+document.getElementById("settings-button").addEventListener("click", (e) => {
+  openSettingsMenu();
+  e.stopPropagation();
+});
+document.addEventListener("click", () => {
+  if (settingsMenuOpen) {
+    closeSettingsMenu();
+  }
+});
+document.getElementById("settings-menu").addEventListener("click", (e) => {
+  e.stopPropagation();
 });
 document.body.ondragover = document.body.ondragenter = (ev) => {
   ev.preventDefault();
