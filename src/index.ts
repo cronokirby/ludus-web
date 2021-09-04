@@ -1,5 +1,75 @@
 import { Emulator } from "../Cargo.toml";
 
+/**
+ * Buttons maps each Button to a single bit.
+ *
+ * This allows for efficient encoding for passing across WASM.
+ */
+enum Button {
+  A = 1,
+  B = 1 << 1,
+  Start = 1 << 2,
+  Select = 1 << 3,
+  Up = 1 << 4,
+  Down = 1 << 5,
+  Left = 1 << 6,
+  Right = 1 << 7,
+}
+
+/**
+ * Controls is used to control the state of the buttons, and to support remapping.
+ */
+class Controls {
+  private mapping: Map<string, Button>;
+  private state: number = 0;
+
+  constructor() {
+    this.mapping = new Map([
+      ["w", Button.Up],
+      ["a", Button.Left],
+      ["s", Button.Down],
+      ["d", Button.Right],
+      ["g", Button.Select],
+      ["h", Button.Start],
+      ["j", Button.A],
+      ["k", Button.B],
+    ]);
+  }
+
+  /**
+   * Update the state of an emulator with the current buttons being pressed.
+   *
+   * @param emu the emulator instance to update.
+   */
+  update(emu: Emulator) {
+    emu.update_buttons(this.state);
+  }
+
+  /**
+   * Update the button state when a key is pressed.
+   *
+   * @param key the string name for the key.
+   */
+  onKeyDown(key: string) {
+    if (!this.mapping.has(key)) {
+      return;
+    }
+    this.state |= this.mapping.get(key);
+  }
+
+  /**
+   * Update the button state when a key is released.
+   *
+   * @param key the string name for the key.
+   */
+  onKeyUp(key: string) {
+    if (!this.mapping.has(key)) {
+      return;
+    }
+    this.state &= ~this.mapping.get(key);
+  }
+}
+
 const audioCtx = new AudioContext();
 const SAMPLE_RATE = 44100;
 
@@ -7,6 +77,7 @@ const emu = new Emulator(SAMPLE_RATE, audioCtx);
 
 let settingsMenuOpen = false;
 let paused = false;
+let controls = new Controls();
 
 function openSettingsMenu() {
   if (settingsMenuOpen) {
@@ -86,36 +157,13 @@ ctx.webkitImageSmoothingEnabled = false;
 ctx.mozImageSmoothingEnabled = false;
 ctx.imageSmoothingEnabled = false;
 
-enum Buttons {
-  A = 1,
-  B = 1 << 1,
-  Start = 1 << 2,
-  Select = 1 << 3,
-  Up = 1 << 4,
-  Down = 1 << 5,
-  Left = 1 << 6,
-  Right = 1 << 7,
-}
-
-let buttons = 0;
-const buttonmap = {
-  j: Buttons.A,
-  k: Buttons.B,
-  h: Buttons.Start,
-  g: Buttons.Select,
-  w: Buttons.Up,
-  s: Buttons.Down,
-  a: Buttons.Left,
-  d: Buttons.Right,
-};
-
 window.addEventListener("keydown", (ev) => {
-  buttons |= buttonmap[ev.key] ?? 0;
-  emu.update_buttons(buttons);
+  controls.onKeyDown(ev.key);
+  controls.update(emu);
 });
 window.addEventListener("keyup", (ev) => {
-  buttons &= ~(buttonmap[ev.key] ?? 0);
-  emu.update_buttons(buttons);
+  controls.onKeyUp(ev.key);
+  controls.update(emu);
 });
 
 let old = 0.0;
