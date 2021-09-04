@@ -6,12 +6,14 @@ const SAMPLE_RATE = 44100;
 const emu = new Emulator(SAMPLE_RATE, audioCtx);
 
 let settingsMenuOpen = false;
+let paused = false;
 
 function openSettingsMenu() {
   if (settingsMenuOpen) {
     return;
   }
   settingsMenuOpen = true;
+  paused = true;
   const menu = document.getElementById("settings-menu-background");
   menu.classList.remove("invisible", "opacity-0");
   menu.classList.add("opacity-100");
@@ -22,6 +24,7 @@ function closeSettingsMenu() {
     return;
   }
   settingsMenuOpen = false;
+  paused = false;
   const menu = document.getElementById("settings-menu-background");
   menu.classList.remove("opacity-100");
   menu.classList.add("invisible", "opacity-0");
@@ -120,7 +123,9 @@ let old = 0.0;
 function loop(timestamp: number) {
   const diff = 1000 * (timestamp - old);
   old = timestamp;
-  emu.step(ctx, diff);
+  if (!paused) {
+    emu.step(ctx, diff);
+  }
 
   window.requestAnimationFrame(loop);
 }
