@@ -70,36 +70,65 @@ class Controls {
   }
 }
 
+/**
+ * SettingsMenu represents the state of the menu used to configure emulator settings.
+ * 
+ * This corresponds to the little gear icon on the page, and the subsequent menu
+ * where we can select the keys we use for buttons.
+ */
+class SettingsMenu {
+  /**
+   * When true, the settings menu is currently open.
+   */
+  private _open = false;
+  private _element: HTMLElement
+
+  /**
+   * 
+   * @param id the ID of the menu element, or the hardcoded one if not provided.
+   */
+  constructor(id: string = 'settings-menu-background') {
+    this._element = document.getElementById(id);
+  }
+
+  /**
+   * @returns whether or not this menu is currently open.
+   */
+  isOpen(): boolean {
+    return this._open
+  }
+
+  /**
+   * Open the settings menu.
+   */
+  open() {
+    if (this._open) {
+      return
+    }
+    this._open = true;
+    this._element.classList.remove("invisible", "opacity-0");
+    this._element.classList.add("opacity-100");
+  }
+
+  /**
+   * Close the settings menu.
+   */
+  close() {
+    if (!this._open) {
+      return
+    }
+    this._open = false;
+    this._element.classList.remove("opacity-100");
+    this._element.classList.add("invisible", "opacity-0");
+  }
+}
+
 const audioCtx = new AudioContext();
 const SAMPLE_RATE = 44100;
 
 const emu = new Emulator(SAMPLE_RATE, audioCtx);
-
-let settingsMenuOpen = false;
-let paused = false;
-let controls = new Controls();
-
-function openSettingsMenu() {
-  if (settingsMenuOpen) {
-    return;
-  }
-  settingsMenuOpen = true;
-  paused = true;
-  const menu = document.getElementById("settings-menu-background");
-  menu.classList.remove("invisible", "opacity-0");
-  menu.classList.add("opacity-100");
-}
-
-function closeSettingsMenu() {
-  if (!settingsMenuOpen) {
-    return;
-  }
-  settingsMenuOpen = false;
-  paused = false;
-  const menu = document.getElementById("settings-menu-background");
-  menu.classList.remove("opacity-100");
-  menu.classList.add("invisible", "opacity-0");
-}
+const controls = new Controls();
+const settings = new SettingsMenu()
 
 const romSelector = document.getElementById("rom-selector") as HTMLInputElement;
 romSelector.addEventListener(
@@ -118,13 +147,11 @@ document.getElementById("rom-selector-button").addEventListener("click", () => {
   romSelector.click();
 });
 document.getElementById("settings-button").addEventListener("click", (e) => {
-  openSettingsMenu();
+  settings.open();
   e.stopPropagation();
 });
 document.addEventListener("click", () => {
-  if (settingsMenuOpen) {
-    closeSettingsMenu();
-  }
+  settings.close();
 });
 document.getElementById("settings-menu").addEventListener("click", (e) => {
   e.stopPropagation();
@@ -171,7 +198,7 @@ let old = 0.0;
 function loop(timestamp: number) {
   const diff = 1000 * (timestamp - old);
   old = timestamp;
-  if (!paused) {
+  if (!settings.isOpen()) {
     emu.step(ctx, diff);
   }
 
