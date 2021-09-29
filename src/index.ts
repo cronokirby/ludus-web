@@ -123,12 +123,39 @@ class SettingsMenu {
   }
 }
 
+/**
+ * Holds the state needed for our emulator loop.
+ * 
+ * This keeps the emulator running.
+ */
+class Loop {
+  private _old = 0.0;
+
+  constructor(private _emu: Emulator, private _settings: SettingsMenu) { }
+
+  /**
+   * This advances the state of the loop, designed for requestAnimationFrame.
+   * 
+   * @param timestamp the current timestamp of our simulation.
+   */
+  loop(timestamp: number) {
+    const diff = 1000 * (timestamp - this._old);
+    this._old = timestamp;
+    if (!this._settings.isOpen()) {
+      this._emu.step(ctx, diff);
+    }
+
+    window.requestAnimationFrame(this.loop.bind(this));
+  }
+}
+
 const audioCtx = new AudioContext();
 const SAMPLE_RATE = 44100;
 
 const emu = new Emulator(SAMPLE_RATE, audioCtx);
-const controls = new Controls();
 const settings = new SettingsMenu()
+const loop = new Loop(emu, settings);
+const controls = new Controls();
 
 const romSelector = document.getElementById("rom-selector") as HTMLInputElement;
 romSelector.addEventListener(
@@ -193,16 +220,4 @@ window.addEventListener("keyup", (ev) => {
   controls.update(emu);
 });
 
-let old = 0.0;
-
-function loop(timestamp: number) {
-  const diff = 1000 * (timestamp - old);
-  old = timestamp;
-  if (!settings.isOpen()) {
-    emu.step(ctx, diff);
-  }
-
-  window.requestAnimationFrame(loop);
-}
-
-window.requestAnimationFrame(loop);
+window.requestAnimationFrame(loop.loop.bind(loop));
