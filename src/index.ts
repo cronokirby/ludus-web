@@ -149,9 +149,41 @@ class Loop {
   }
 }
 
+/**
+ * loadRom loads in a ROM file into an emulator.
+ * 
+ * @param emu the emulator we're using.
+ * @param file the file object we want to extract the ROM data from.
+ */
+function loadRom(emu: Emulator, file: File) {
+  file.arrayBuffer().then(rom => emu.swap_cart(new Uint8Array(rom)));
+}
+
+/**
+ * dataTransferFile retrieves the first file from a data transfer object.
+ * 
+ * @param data the data transfer object.
+ * @returns the file we want to load.
+ */
+function dataTransferFile(data: DataTransfer): File {
+  let file = null as File | null;
+  if (data.items) {
+    // Use DataTransferItemList interface to access the file(s)
+    for (var i = 0; i < data.items.length; i++) {
+      // If dropped items aren't files, reject them
+      if (data.items[i].kind === "file") {
+        file = data.items[i].getAsFile();
+        break;
+      }
+    }
+  } else {
+    file = data.files[0];
+  }
+  return file;
+}
+
 const audioCtx = new AudioContext();
 const SAMPLE_RATE = 44100;
-
 const emu = new Emulator(SAMPLE_RATE, audioCtx);
 const settings = new SettingsMenu()
 const loop = new Loop(emu, settings);
@@ -161,12 +193,7 @@ const romSelector = document.getElementById("rom-selector") as HTMLInputElement;
 romSelector.addEventListener(
   "change",
   function () {
-    this.files
-      .item(0)
-      .arrayBuffer()
-      .then((rom) => {
-        emu.swap_cart(new Uint8Array(rom));
-      });
+    loadRom(emu, this.files.item(0));
   },
   false
 );
@@ -188,20 +215,8 @@ document.body.ondragover = document.body.ondragenter = (ev) => {
 };
 document.body.addEventListener("drop", (ev) => {
   ev.preventDefault();
-  let file = null as File | null;
-  if (ev.dataTransfer.items) {
-    // Use DataTransferItemList interface to access the file(s)
-    for (var i = 0; i < ev.dataTransfer.items.length; i++) {
-      // If dropped items aren't files, reject them
-      if (ev.dataTransfer.items[i].kind === "file") {
-        file = ev.dataTransfer.items[i].getAsFile();
-        break;
-      }
-    }
-  } else {
-    file = ev.dataTransfer.files[0];
-  }
-  file.arrayBuffer().then((rom) => emu.swap_cart(new Uint8Array(rom)));
+  const file = dataTransferFile(ev.dataTransfer);
+  loadRom(emu, file);
 });
 
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
